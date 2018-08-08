@@ -125,7 +125,7 @@ function expandInput (scriptSig, witnessStack, type, scriptPubKey) {
 }
 
 // could be done in expandInput, but requires the original Transaction for hashForSignature
-function fixMultisigOrder (input, transaction, vin) {
+function fixMultisigOrder (input, transaction, vin, network) {
   if (input.redeemScriptType !== SCRIPT_TYPES.MULTISIG || !input.redeemScript) return
   if (input.pubkeys.length === input.signatures.length) return
 
@@ -141,8 +141,8 @@ function fixMultisigOrder (input, transaction, vin) {
       if (!signature) return false
 
       // TODO: avoid O(n) hashForSignature
-      const parsed = bscript.signature.decode(signature)
-      const hash = transaction.hashForSignature(vin, input.redeemScript, parsed.hashType)
+      const parsed = bscript.signature.decode(signature, network.forkId)
+      const hash = transaction.hashForSignature(vin, input.redeemScript, parsed.hashType, network.forkId)
 
       // skip if signature does not match pubKey
       if (!keyPair.verify(hash, parsed.signature)) return false
@@ -377,7 +377,6 @@ function build (type, input, allowIncomplete) {
     case SCRIPT_TYPES.P2PKH: {
       if (pubkeys.length === 0) break
       if (signatures.length === 0) break
-
       return payments.p2pkh({ pubkey: pubkeys[0], signature: signatures[0] })
     }
     case SCRIPT_TYPES.P2WPKH: {
@@ -485,7 +484,7 @@ TransactionBuilder.fromTransaction = function (transaction, network) {
 
   // fix some things not possible through the public API
   txb.__inputs.forEach(function (input, i) {
-    fixMultisigOrder(input, transaction, i)
+    fixMultisigOrder(input, transaction, i, network || networks.bitcoin)
   })
 
   return txb
@@ -634,8 +633,8 @@ TransactionBuilder.prototype.sign = function (vin, keyPair, redeemScript, hashTy
   if (keyPair.network && keyPair.network !== this.network) throw new TypeError('Inconsistent network')
   if (!this.__inputs[vin]) throw new Error('No input at index: ' + vin)
   hashType = hashType || Transaction.SIGHASH_ALL
-
   const input = this.__inputs[vin]
+  const network = this.network
 
   // if redeemScript was previously provided, enforce consistency
   if (input.redeemScript !== undefined &&
@@ -664,10 +663,10 @@ TransactionBuilder.prototype.sign = function (vin, keyPair, redeemScript, hashTy
 
   // ready to sign
   let signatureHash
-  if (input.hasWitness) {
-    signatureHash = this.__tx.hashForWitnessV0(vin, input.signScript, input.value, hashType)
+  if (input.hasWitness || network.forkId >= 0) {
+    signatureHash = this.__tx.hashForWitnessV0(vin, input.signScript, input.value, hashType, network.forkId)
   } else {
-    signatureHash = this.__tx.hashForSignature(vin, input.signScript, hashType)
+    signatureHash = this.__tx.hashForSignature(vin, input.signScript, hashType, network.forkId)
   }
 
   // enforce in order signing of public keys
@@ -681,7 +680,7 @@ TransactionBuilder.prototype.sign = function (vin, keyPair, redeemScript, hashTy
     }
 
     const signature = keyPair.sign(signatureHash)
-    input.signatures[i] = bscript.signature.encode(signature, hashType)
+    input.signatures[i] = bscript.signature.encode(signature, hashType, network.forkId)
     return true
   })
 

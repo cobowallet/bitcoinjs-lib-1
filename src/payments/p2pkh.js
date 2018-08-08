@@ -1,5 +1,5 @@
 const lazy = require('./lazy')
-const typef = require('typeforce')
+// const typef = require('typeforce')
 const OPS = require('bitcoin-ops')
 const ecc = require('tiny-secp256k1')
 
@@ -20,16 +20,16 @@ function p2pkh (a, opts) {
   ) throw new TypeError('Not enough data')
   opts = opts || { validate: true }
 
-  typef({
-    network: typef.maybe(typef.Object),
-    address: typef.maybe(typef.String),
-    hash: typef.maybe(typef.BufferN(20)),
-    output: typef.maybe(typef.BufferN(25)),
+  // typef({
+  //   network: typef.maybe(typef.Object),
+  //   address: typef.maybe(typef.String),
+  //   hash: typef.maybe(typef.BufferN(20)),
+  //   output: typef.maybe(typef.BufferN(25)),
 
-    pubkey: typef.maybe(ecc.isPoint),
-    signature: typef.maybe(bscript.isCanonicalScriptSignature),
-    input: typef.maybe(typef.Buffer)
-  }, a)
+  //   pubkey: typef.maybe(ecc.isPoint),
+  //   signature: typef.maybe(bscript.isCanonicalScriptSignature),
+  //   input: typef.maybe(typef.Buffer)
+  // }, a)
 
   const _address = lazy.value(function () {
     const payload = bs58check.decode(a.address)

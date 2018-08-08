@@ -29,7 +29,7 @@ function buildAndSign (depends, prevOutput, redeemScript, witnessScript, done) {
   })
 }
 
-;['p2ms', 'p2pk', 'p2pkh', 'p2wpkh'].forEach((k) => {
+;['p2pkh'].forEach((k) => {
   const fixtures = require('../fixtures/' + k)
   const { depends } = fixtures.dynamic
   const fn = bitcoin.payments[k]

@@ -35,6 +35,7 @@ Transaction.SIGHASH_SINGLE = 0x03
 Transaction.SIGHASH_ANYONECANPAY = 0x80
 Transaction.ADVANCED_TRANSACTION_MARKER = 0x00
 Transaction.ADVANCED_TRANSACTION_FLAG = 0x01
+Transaction.SIGHASH_BITCOINCASHBIP143 = 0x40
 
 const EMPTY_SCRIPT = Buffer.allocUnsafe(0)
 const EMPTY_WITNESS = []
@@ -251,11 +252,16 @@ Transaction.prototype.clone = function () {
  * hashType, and then hashes the result.
  * This hash can then be used to sign the provided transaction input.
  */
-Transaction.prototype.hashForSignature = function (inIndex, prevOutScript, hashType) {
+Transaction.prototype.hashForSignature = function (inIndex, prevOutScript, hashType, forkId) {
   typeforce(types.tuple(types.UInt32, types.Buffer, /* types.UInt8 */ types.Number), arguments)
 
   // https://github.com/bitcoin/bitcoin/blob/master/src/test/sighash_tests.cpp#L29
   if (inIndex >= this.ins.length) return ONE
+
+  if (typeof forkId !== 'undefined') {
+    hashType |= Transaction.SIGHASH_BITCOINCASHBIP143
+    hashType |= forkId << 8
+  }
 
   // ignore OP_CODESEPARATOR
   const ourScript = bscript.compile(bscript.decompile(prevOutScript).filter(function (x) {
@@ -316,8 +322,13 @@ Transaction.prototype.hashForSignature = function (inIndex, prevOutScript, hashT
   return bcrypto.hash256(buffer)
 }
 
-Transaction.prototype.hashForWitnessV0 = function (inIndex, prevOutScript, value, hashType) {
+Transaction.prototype.hashForWitnessV0 = function (inIndex, prevOutScript, value, hashType, forkId) {
   typeforce(types.tuple(types.UInt32, types.Buffer, types.Satoshi, types.UInt32), arguments)
+
+  if (typeof forkId !== 'undefined') {
+    hashType |= Transaction.SIGHASH_BITCOINCASHBIP143
+    hashType |= forkId << 8
+  }
 
   let tbuffer, toffset
   function writeSlice (slice) { toffset += slice.copy(tbuffer, toffset) }

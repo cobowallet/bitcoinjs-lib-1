@@ -22,9 +22,14 @@ function fromDER (x) {
 }
 
 // BIP62: 1 byte hashType flag (only 0x01, 0x02, 0x03, 0x81, 0x82 and 0x83 are allowed)
-function decode (buffer) {
+function decode (buffer, forkId) {
   const hashType = buffer.readUInt8(buffer.length - 1)
-  const hashTypeMod = hashType & ~0x80
+  let hashTypeMod = hashType & ~0x80
+
+  if (typeof forkId !== 'undefined') {
+    hashTypeMod = hashType & ~0xc0
+  }
+
   if (hashTypeMod <= 0 || hashTypeMod >= 4) throw new Error('Invalid hashType ' + hashType)
 
   const decode = bip66.decode(buffer.slice(0, -1))
@@ -37,13 +42,20 @@ function decode (buffer) {
   }
 }
 
-function encode (signature, hashType) {
+function encode (signature, hashType, forkId) {
   typeforce({
     signature: types.BufferN(64),
     hashType: types.UInt8
   }, { signature, hashType })
 
-  const hashTypeMod = hashType & ~0x80
+  let hashTypeMod = hashType & ~0x80
+
+  if (typeof forkId !== 'undefined') {
+    hashType |= 0x40
+    hashType |= forkId << 8
+    hashTypeMod = hashType & ~0xc0
+  }
+
   if (hashTypeMod <= 0 || hashTypeMod >= 4) throw new Error('Invalid hashType ' + hashType)
 
   const hashTypeBuffer = Buffer.allocUnsafe(1)

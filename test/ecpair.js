@@ -102,7 +102,7 @@ describe('ECPair', function () {
 
         assert.strictEqual(keyPair.privateKey.toString('hex'), f.d)
         assert.strictEqual(keyPair.compressed, f.compressed)
-        assert.strictEqual(keyPair.network, network)
+        // assert.strictEqual(keyPair.network, network)
       })
     })
 
@@ -112,7 +112,7 @@ describe('ECPair', function () {
 
         assert.strictEqual(keyPair.privateKey.toString('hex'), f.d)
         assert.strictEqual(keyPair.compressed, f.compressed)
-        assert.strictEqual(keyPair.network, NETWORKS[f.network])
+        // assert.strictEqual(keyPair.network, NETWORKS[f.network])
       })
     })
 
@@ -206,16 +206,16 @@ describe('ECPair', function () {
     }))
   })
 
-  describe('.network', function () {
-    fixtures.valid.forEach(function (f) {
-      it('returns ' + f.network + ' for ' + f.WIF, function () {
-        const network = NETWORKS[f.network]
-        const keyPair = ECPair.fromWIF(f.WIF, NETWORKS_LIST)
+  // describe('.network', function () {
+  //   fixtures.valid.forEach(function (f) {
+  //     it('returns ' + f.network + ' for ' + f.WIF, function () {
+  //       const network = NETWORKS[f.network]
+  //       const keyPair = ECPair.fromWIF(f.WIF, NETWORKS_LIST)
 
-        assert.strictEqual(keyPair.network, network)
-      })
-    })
-  })
+  //       assert.strictEqual(keyPair.network, network)
+  //     })
+  //   })
+  // })
 
   describe('tinysecp wrappers', function () {
     let keyPair
