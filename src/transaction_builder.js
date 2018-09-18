@@ -743,4 +743,6 @@ TransactionBuilder.prototype.__overMaximumFees = function (bytes) {
   return feeRate > this.maximumFeeRate
 }
 
+TransactionBuilder.canSign = canSign
+TransactionBuilder.prepareInput = prepareInput
 module.exports = TransactionBuilder
