@@ -73,5 +73,16 @@ module.exports = {
     pubKeyHash: 0x30,
     scriptHash: 0x32,
     wif: 0xb0
-  }
+  },
+  dash: {
+    coin: 'dash',
+    messagePrefix: '\x18DASH Signed Message:\n',
+    bip32: {
+      public: 0x02fe52cc,
+      private: 0x02fe52f8
+    },
+    pubKeyHash: 0x4c,
+    scriptHash: 0x10,
+    wif: 0xcc
+  },
 }
