@@ -317,36 +317,23 @@ describe('TransactionBuilder', function () {
       txb.sign(0, keyPair)
       assert.equal(txb.build().toHex(), '0100000001ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff010000006a47304402205f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f02205f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f0121031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078fffffffff01a0860100000000001976a914000000000000000000000000000000000000000088ac00000000')
     })
+  })
 
-    fixtures.invalid.sign.forEach(function (f) {
-      it('throws ' + f.exception + (f.description ? ' (' + f.description + ')' : ''), function () {
-        const txb = construct(f, true)
-
-        f.inputs.forEach(function (input, index) {
-          input.signs.forEach(function (sign) {
-            const keyPairNetwork = NETWORKS[sign.network || f.network]
-            const keyPair2 = ECPair.fromWIF(sign.keyPair, keyPairNetwork)
-            let redeemScript
-            let witnessScript
-
-            if (sign.redeemScript) {
-              redeemScript = bscript.fromASM(sign.redeemScript)
-            }
-
-            if (sign.witnessScript) {
-              witnessScript = bscript.fromASM(sign.witnessScript)
-            }
-
-            if (!sign.throws) {
-              txb.sign(index, keyPair2, redeemScript, sign.hashType, sign.value, witnessScript)
-            } else {
-              assert.throws(function () {
-                txb.sign(index, keyPair2, redeemScript, sign.hashType, sign.value, witnessScript)
-              }, new RegExp(f.exception))
-            }
-          })
-        })
-      })
+  describe('composeSignature', function () {
+    it('supports compose signatures', function () {
+      const keyPair = {
+        publicKey: ECPair.makeRandom({ rng: function () { return Buffer.alloc(32, 1) } }).publicKey,
+        sign: function (hash) { return Buffer.alloc(64, 0x5f) }
+      }
+      const txb = new TransactionBuilder()
+      txb.setVersion(1)
+      txb.addInput('ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff', 1)
+      txb.addOutput('1111111111111111111114oLvT2', 100000)
+      const signatures = {
+        '5fe68f4c7cd4d37c4b59ef7b61b496d58a03a77691c2990c7b849ec06c5342d4': '5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f'
+      }
+      txb.composeSignature(0, keyPair.publicKey, signatures)
+      assert.equal(txb.build().toHex(), '0100000001ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff010000006a47304402205f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f02205f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f5f0121031b84c5567b126440995d3ed5aaba0565d71e1834604819ff9c17f5e9d5dd078fffffffff01a0860100000000001976a914000000000000000000000000000000000000000088ac00000000')
     })
   })
 

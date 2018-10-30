@@ -687,6 +687,66 @@ TransactionBuilder.prototype.sign = function (vin, keyPair, redeemScript, hashTy
   if (!signed) throw new Error('Key pair cannot sign for this input')
 }
 
+TransactionBuilder.prototype.composeSignature = function(vin, pubKey, signatures, redeemScript, hashType, witnessValue, witnessScript) {
+   // TODO: remove keyPair.network matching in 4.0.0
+   if (!this.__inputs[vin]) throw new Error('No input at index: ' + vin)
+   hashType = hashType || Transaction.SIGHASH_ALL
+   const input = this.__inputs[vin]
+   const network = this.network
+ 
+   // if redeemScript was previously provided, enforce consistency
+   if (input.redeemScript !== undefined &&
+       redeemScript &&
+       !input.redeemScript.equals(redeemScript)) {
+     throw new Error('Inconsistent redeemScript')
+   }
+ 
+   const ourPubKey = pubKey
+   if (!canSign(input)) {
+     if (witnessValue !== undefined) {
+       if (input.value !== undefined && input.value !== witnessValue) throw new Error('Input didn\'t match witnessValue')
+       typeforce(types.Satoshi, witnessValue)
+       input.value = witnessValue
+     }
+ 
+     if (!canSign(input)) {
+       const prepared = prepareInput(input, ourPubKey, redeemScript, witnessValue, witnessScript)
+ 
+       // updates inline
+       Object.assign(input, prepared)
+     }
+ 
+     if (!canSign(input)) throw Error(input.prevOutType + ' not supported')
+   }
+ 
+   // ready to sign
+   let signatureHash
+   if (input.hasWitness || network.forkId >= 0) {
+     signatureHash = this.__tx.hashForWitnessV0(vin, input.signScript, input.value, hashType, network.forkId)
+   } else {
+     signatureHash = this.__tx.hashForSignature(vin, input.signScript, hashType, network.forkId)
+   }
+ 
+   // enforce in order signing of public keys
+   const signed = input.pubkeys.some(function (pubKey, i) {
+     if (!ourPubKey.equals(pubKey)) return false
+     if (input.signatures[i]) throw new Error('Signature already exists')
+ 
+     // TODO: add tests
+     if (ourPubKey.length !== 33 && input.hasWitness) {
+       throw new Error('BIP143 rejects uncompressed public keys in P2WPKH or P2WSH')
+     }
+     const signatureHashString = signatureHash.toString('hex')
+     const signature = Buffer.from(signatures[signatureHashString], 'hex')
+     input.signatures[i] = bscript.signature.encode(signature, hashType, network.forkId)
+     return true
+   })
+ 
+   if (!signed) throw new Error('Key pair cannot sign for this input')
+}
+
+
+
 function signatureHashType (buffer) {
   return buffer.readUInt8(buffer.length - 1)
 }
